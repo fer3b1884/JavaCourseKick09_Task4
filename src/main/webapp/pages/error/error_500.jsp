@@ -1,16 +1,16 @@
 <%--
   Created by IntelliJ IDEA.
   User: Professional
-  Date: 29.07.2026
-  Time: 20:07
+  Date: 03.08.2026
+  Time: 18:20
   To change this template use File | Settings | File Templates.
 --%>
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page isErrorPage="true" contentType="text/html;charset=UTF-8" language="java" %>
 <html>
 <head>
-    <title>Main</title>
+    <title>500</title>
 </head>
 <body>
-    Hello ${user}!
+500
 </body>
 </html>
