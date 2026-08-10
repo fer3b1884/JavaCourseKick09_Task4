@@ -17,7 +17,7 @@ public class ConnectionPool {
             DriverManager.registerDriver(new org.postgresql.Driver());
 //            Class.forName("org.postgresql.Driver");
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new ExceptionInInitializerError(e);
         }
     }
 
@@ -33,7 +33,7 @@ public class ConnectionPool {
             try {
                 connection = DriverManager.getConnection(url, prop);
             } catch (SQLException e) {
-                throw new RuntimeException(e);
+                throw new ExceptionInInitializerError(e);
             }
             free.add(connection);
         }
@@ -51,7 +51,8 @@ public class ConnectionPool {
             connection = free.take();
             used.put(connection);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            // log
+            Thread.currentThread().interrupt();
         }
         return connection;
     }
@@ -61,7 +62,20 @@ public class ConnectionPool {
             used.remove(connection);
             free.put(connection);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            // log
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    // deregisterDriver
+
+    public void destroyPool(){
+        for(int i = 0; i < 8; i++) {
+            try {
+                free.take().close();
+            } catch (SQLException | InterruptedException e) {
+                // log
+            }
         }
     }
 }

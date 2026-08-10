@@ -14,7 +14,9 @@
     <br/>
     <input type="submit" name="sub" value="Push"/>
     <br/>
-    ${login_msg}
+    ${login_msg.toUpperCase()}
+    <br/>
+    ${pageContext.session.id}
 </form>
 </body>
 </html>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Configuration status="WARN">
+    <Properties>
+        <Property name="LOG_DIR">logs</Property>
+        <Property name="PATTERN_CONSOLE">%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %c - %msg%n</Property>
+        <Property name="PATTERN_FILE">%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %c - %msg%n</Property>
+    </Properties>
+    <Appenders>
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="${PATTERN_CONSOLE}"/>
+        </Console>
+<!--        <File name="FileAppender" fileName="${LOG_DIR}/text.log">-->
+<!--            <PatternLayout pattern="${PATTERN_FILE}"/>-->
+<!--        </File>-->
+        <RollingFile name="FileRolling" fileName="${LOG_DIR}/text.log" append = "true"
+                     filePattern="${LOG_DIR}/%d{yyyy-MM-dd}/%d{yyyy-MM-dd_HH-mm}_%i.log">
+            <Policies>
+                <SizeBasedTriggeringPolicy size="15 KB"/>
+            </Policies>
+            <PatternLayout pattern="${PATTERN_FILE}"/>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Logger name="Log_Console">
+            <AppenderRef ref="ConsoleAppender"/>
+        </Logger>
+        <Logger name="Log_File">
+<!--            <AppenderRef ref="FileAppender"/>-->
+            <AppenderRef ref="FileRolling"/>
+        </Logger>
+        <Root level="info">
+            <AppenderRef ref="ConsoleAppender"/>
+<!--            <AppenderRef ref="FileAppender"/>-->
+            <AppenderRef ref="FileRolling"/>
+        </Root>
+    </Loggers>
+</Configuration>
