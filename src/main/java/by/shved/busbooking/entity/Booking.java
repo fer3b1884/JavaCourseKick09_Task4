@@ -3,7 +3,7 @@ package by.shved.busbooking.entity;
 import java.time.LocalDateTime;
 import java.util.StringJoiner;
 
-public class Booking {
+public class Booking extends AbstractEntity {
     private Integer id;
     private User user;
     private Trip trip;

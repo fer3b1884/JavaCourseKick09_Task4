@@ -3,12 +3,14 @@ package by.shved.busbooking.dao;
 import by.shved.busbooking.entity.AbstractEntity;
 import by.shved.busbooking.exception.DaoException;
 
+import java.util.List;
 import java.util.Optional;
 
-public interface BaseDao<T extends AbstractEntity> {
-    boolean insert(T t) throws DaoException;
-    boolean delete(T t) throws DaoException;
-    boolean deleteById(T t) throws DaoException;
-    Optional<T> findAll() throws DaoException;
-    T update(T t) throws DaoException;  // returns old one
+public interface BaseDao<K, T extends AbstractEntity> {
+    boolean create(T entity) throws DaoException;
+    List<T> findAll() throws DaoException;
+    Optional<T> findEntityById(K id) throws DaoException;
+    T update(T entity) throws DaoException; // returns old one
+    boolean delete(K id) throws DaoException;
+//    boolean delete(T entity) throws DaoException;
 }

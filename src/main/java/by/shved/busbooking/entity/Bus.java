@@ -2,7 +2,7 @@ package by.shved.busbooking.entity;
 
 import java.util.StringJoiner;
 
-public class Bus {
+public class Bus extends AbstractEntity {
     private Integer id;
     private String busNumber;
     private String brand;

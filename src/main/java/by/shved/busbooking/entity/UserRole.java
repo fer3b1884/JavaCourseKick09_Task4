@@ -2,7 +2,7 @@ package by.shved.busbooking.entity;
 
 import java.util.StringJoiner;
 
-public class UserRole {
+public class UserRole extends AbstractEntity {
     private Integer id;
     private String name;
 

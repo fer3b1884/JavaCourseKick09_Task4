@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.StringJoiner;
 
-public class Trip {
+public class Trip extends AbstractEntity {
     private Integer id;
     private BusRoute route;
     private Bus bus;
