@@ -3,8 +3,10 @@ package by.shved.busbooking.dao.impl;
 import by.shved.busbooking.dao.BusDao;
 import by.shved.busbooking.dao.mapper.EntityMapper;
 import by.shved.busbooking.entity.Bus;
+import by.shved.busbooking.exception.ConnectionPoolException;
 import by.shved.busbooking.exception.DaoException;
 import by.shved.busbooking.pool.ConnectionPool;
+import by.shved.busbooking.pool.ProxyConnection;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -15,7 +17,6 @@ import java.util.Optional;
 
 public class BusDaoImpl implements BusDao {
     private static final Logger logger = LogManager.getLogger(BusDaoImpl.class);
-    private final ConnectionPool connectionPool;
     private static final String FIND_ALL = "SELECT * FROM buses";
     private static final String FIND_BY_ID = "SELECT * FROM buses WHERE id = ?";
     private static final String INSERT = """
@@ -36,212 +37,167 @@ public class BusDaoImpl implements BusDao {
             "SELECT * FROM buses WHERE mileage > ?";
 
     public BusDaoImpl() {
-        connectionPool = ConnectionPool.getInstance();
     }
 
     @Override
     public boolean create(Bus bus) throws DaoException {
-        Connection connection = null;
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(INSERT, Statement.RETURN_GENERATED_KEYS)) {
-                setBusParameters(statement, bus);
-                int affected = statement.executeUpdate();
-                if (affected == 0) return false;
-                try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
-                    if (generatedKeys.next()) {
-                        bus.setId(generatedKeys.getInt(1));
-                    }
-                }
-                return true;
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(INSERT, Statement.RETURN_GENERATED_KEYS)) {
+            setBusParameters(statement, bus);
+            int affected = statement.executeUpdate();
+            if (affected == 0) {
+                return false;
             }
+            try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    bus.setId(generatedKeys.getInt(1));
+                }
+            }
+            return true;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to create bus: {}", bus, e);
             throw new DaoException("Failed to create bus", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public List<Bus> findAll() throws DaoException {
-        Connection connection = null;
         List<Bus> buses = new ArrayList<>();
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(FIND_ALL);
-                 ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    buses.add(EntityMapper.mapBus(resultSet));
-                }
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_ALL);
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                buses.add(EntityMapper.mapBus(resultSet));
             }
             return buses;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to find all buses", e);
             throw new DaoException("Failed to find all buses", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public Optional<Bus> findEntityById(Integer id) throws DaoException {
-        Connection connection = null;
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(FIND_BY_ID)) {
-                statement.setInt(1, id);
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    if (resultSet.next()) {
-                        return Optional.of(EntityMapper.mapBus(resultSet));
-                    }
-                    return Optional.empty();
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_ID)) {
+            statement.setInt(1, id);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(EntityMapper.mapBus(resultSet));
                 }
+                return Optional.empty();
             }
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to find bus by id: {}", id, e);
             throw new DaoException("Failed to find bus by id", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public Bus update(Bus bus) throws DaoException {
-        Connection connection = null;
-        try {
-            Optional<Bus> old = findEntityById(bus.getId());
-            if (old.isEmpty()) return null;
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(UPDATE)) {
-                setBusParameters(statement, bus);
-                statement.setInt(8, bus.getId());
-                statement.executeUpdate();
-            }
+        Optional<Bus> old = findEntityById(bus.getId());
+        if (old.isEmpty()) {
+            return null;
+        }
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(UPDATE)) {
+            setBusParameters(statement, bus);
+            statement.setInt(8, bus.getId());
+            statement.executeUpdate();
             return old.get();
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to update bus: {}", bus.getId(), e);
             throw new DaoException("Failed to update bus", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public boolean delete(Integer id) throws DaoException {
-        Connection connection = null;
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(DELETE_BY_ID)) {
-                statement.setInt(1, id);
-                return statement.executeUpdate() > 0;
-            }
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(DELETE_BY_ID)) {
+            statement.setInt(1, id);
+            return statement.executeUpdate() > 0;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to delete bus by id: {}", id, e);
             throw new DaoException("Failed to delete bus", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public List<Bus> findByRouteNumber(String routeNumber) throws DaoException {
-        Connection connection = null;
         List<Bus> buses = new ArrayList<>();
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(FIND_BY_ROUTE_NUMBER)) {
-                statement.setString(1, routeNumber);
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    while (resultSet.next()) {
-                        buses.add(EntityMapper.mapBus(resultSet));
-                    }
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_ROUTE_NUMBER)) {
+            statement.setString(1, routeNumber);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    buses.add(EntityMapper.mapBus(resultSet));
                 }
             }
             return buses;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to find buses by route number: {}", routeNumber, e);
             throw new DaoException("Failed to find buses by route number", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public List<Bus> findOlderThanYears(int years) throws DaoException {
-        Connection connection = null;
         List<Bus> buses = new ArrayList<>();
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(FIND_OLDER_THAN)) {
-                statement.setInt(1, years);
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    while (resultSet.next()) {
-                        buses.add(EntityMapper.mapBus(resultSet));
-                    }
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_OLDER_THAN)) {
+            statement.setInt(1, years);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    buses.add(EntityMapper.mapBus(resultSet));
                 }
             }
             return buses;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to find buses older than {} years", years, e);
             throw new DaoException("Failed to find buses older than years", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public List<Bus> findByMileageGreaterThan(int mileage) throws DaoException {
-        Connection connection = null;
         List<Bus> buses = new ArrayList<>();
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(FIND_MILEAGE_GREATER)) {
-                statement.setInt(1, mileage);
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    while (resultSet.next()) {
-                        buses.add(EntityMapper.mapBus(resultSet));
-                    }
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_MILEAGE_GREATER)) {
+            statement.setInt(1, mileage);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    buses.add(EntityMapper.mapBus(resultSet));
                 }
             }
             return buses;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to find buses with mileage > {}", mileage, e);
             throw new DaoException("Failed to find buses with mileage greater", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 

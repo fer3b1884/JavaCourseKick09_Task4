@@ -3,8 +3,10 @@ package by.shved.busbooking.dao.impl;
 import by.shved.busbooking.dao.TripDao;
 import by.shved.busbooking.dao.mapper.EntityMapper;
 import by.shved.busbooking.entity.Trip;
+import by.shved.busbooking.exception.ConnectionPoolException;
 import by.shved.busbooking.exception.DaoException;
 import by.shved.busbooking.pool.ConnectionPool;
+import by.shved.busbooking.pool.ProxyConnection;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,7 +18,6 @@ import java.util.Optional;
 
 public class TripDaoImpl implements TripDao {
     private static final Logger logger = LogManager.getLogger(TripDaoImpl.class);
-    private final ConnectionPool connectionPool;
     private static final String TRIP_SELECT = """
             SELECT t.id AS trip_id, t.departure_time, t.arrival_time, t.price, t.available_seats,
                    r.id AS route_id, r.route_number, r.departure_city, r.arrival_city,
@@ -47,237 +48,179 @@ public class TripDaoImpl implements TripDao {
     private static final String DELETE_BY_ID = "DELETE FROM trips WHERE id = ?";
     private static final String UPDATE_AVAILABLE_SEATS = "UPDATE trips SET available_seats = ? WHERE id = ?";
 
-    public TripDaoImpl() {
-        connectionPool = ConnectionPool.getInstance();
-    }
-
     @Override
     public boolean create(Trip trip) throws DaoException {
-        Connection connection = null;
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(INSERT, Statement.RETURN_GENERATED_KEYS)) {
-                setTripParameters(statement, trip);
-                int affected = statement.executeUpdate();
-                if (affected == 0) {
-                    return false;
-                }
-                try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
-                    if (generatedKeys.next()) {
-                        trip.setId(generatedKeys.getInt(1));
-                    }
-                }
-                return true;
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(INSERT, Statement.RETURN_GENERATED_KEYS)) {
+            setTripParameters(statement, trip);
+            int affected = statement.executeUpdate();
+            if (affected == 0) {
+                return false;
             }
+            try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    trip.setId(generatedKeys.getInt(1));
+                }
+            }
+            return true;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to create trip: {}", trip, e);
             throw new DaoException("Failed to create trip", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public List<Trip> findAll() throws DaoException {
-        Connection connection = null;
         List<Trip> trips = new ArrayList<>();
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(FIND_ALL);
-                 ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    trips.add(EntityMapper.mapTrip(resultSet));
-                }
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_ALL);
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                trips.add(EntityMapper.mapTrip(resultSet));
             }
             return trips;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to find all trips", e);
             throw new DaoException("Failed to find all trips", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public Optional<Trip> findEntityById(Integer id) throws DaoException {
-        Connection connection = null;
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(FIND_BY_ID)) {
-                statement.setInt(1, id);
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    if (resultSet.next()) {
-                        return Optional.of(EntityMapper.mapTrip(resultSet));
-                    }
-                    return Optional.empty();
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_ID)) {
+            statement.setInt(1, id);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return Optional.of(EntityMapper.mapTrip(resultSet));
                 }
+                return Optional.empty();
             }
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to find trip by id: {}", id, e);
             throw new DaoException("Failed to find trip by id", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public Trip update(Trip trip) throws DaoException {
-        Connection connection = null;
-        try {
-            Optional<Trip> old = findEntityById(trip.getId());
-            if (old.isEmpty()) {
-                return null;
-            }
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(UPDATE)) {
-                setTripParameters(statement, trip);
-                statement.setInt(7, trip.getId());
-                statement.executeUpdate();
-            }
+        Optional<Trip> old = findEntityById(trip.getId());
+        if (old.isEmpty()) {
+            return null;
+        }
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(UPDATE)) {
+            setTripParameters(statement, trip);
+            statement.setInt(7, trip.getId());
+            statement.executeUpdate();
             return old.get();
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to update trip: {}", trip.getId(), e);
             throw new DaoException("Failed to update trip", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public boolean delete(Integer id) throws DaoException {
-        Connection connection = null;
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(DELETE_BY_ID)) {
-                statement.setInt(1, id);
-                return statement.executeUpdate() > 0;
-            }
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(DELETE_BY_ID)) {
+            statement.setInt(1, id);
+            return statement.executeUpdate() > 0;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to delete trip by id: {}", id, e);
             throw new DaoException("Failed to delete trip", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public List<Trip> findByRoute(Integer routeId) throws DaoException {
-        Connection connection = null;
         List<Trip> trips = new ArrayList<>();
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(FIND_BY_ROUTE)) {
-                statement.setInt(1, routeId);
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    while (resultSet.next()) {
-                        trips.add(EntityMapper.mapTrip(resultSet));
-                    }
-                }
-            }
-            return trips;
-        } catch (SQLException e) {
-            logger.error("Failed to find trips by route id: {}", routeId, e);
-            throw new DaoException("Failed to find trips by route", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
-        }
-    }
-
-    @Override
-    public List<Trip> findByDepartureDate(LocalDate date) throws DaoException {
-        Connection connection = null;
-        List<Trip> trips = new ArrayList<>();
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(FIND_BY_DEPARTURE_DATE)) {
-                statement.setDate(1, Date.valueOf(date));
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    while (resultSet.next()) {
-                        trips.add(EntityMapper.mapTrip(resultSet));
-                    }
-                }
-            }
-            return trips;
-        } catch (SQLException e) {
-            logger.error("Failed to find trips by departure date: {}", date, e);
-            throw new DaoException("Failed to find trips by date", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
-        }
-    }
-
-    @Override
-    public List<Trip> findAvailableTrips() throws DaoException {
-        Connection connection = null;
-        List<Trip> trips = new ArrayList<>();
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(FIND_AVAILABLE);
-                 ResultSet resultSet = statement.executeQuery()) {
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_ROUTE)) {
+            statement.setInt(1, routeId);
+            try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     trips.add(EntityMapper.mapTrip(resultSet));
                 }
             }
             return trips;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
+        } catch (SQLException e) {
+            logger.error("Failed to find trips by route id: {}", routeId, e);
+            throw new DaoException("Failed to find trips by route", e);
+        }
+    }
+
+    @Override
+    public List<Trip> findByDepartureDate(LocalDate date) throws DaoException {
+        List<Trip> trips = new ArrayList<>();
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_DEPARTURE_DATE)) {
+            statement.setDate(1, Date.valueOf(date));
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    trips.add(EntityMapper.mapTrip(resultSet));
+                }
+            }
+            return trips;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
+        } catch (SQLException e) {
+            logger.error("Failed to find trips by departure date: {}", date, e);
+            throw new DaoException("Failed to find trips by date", e);
+        }
+    }
+
+    @Override
+    public List<Trip> findAvailableTrips() throws DaoException {
+        List<Trip> trips = new ArrayList<>();
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_AVAILABLE);
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                trips.add(EntityMapper.mapTrip(resultSet));
+            }
+            return trips;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to find available trips", e);
             throw new DaoException("Failed to find available trips", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
     @Override
     public boolean updateAvailableSeats(Integer tripId, Integer availableSeats) throws DaoException {
-        Connection connection = null;
-        try {
-            connection = connectionPool.getConnection();
-            try (PreparedStatement statement = connection.prepareStatement(UPDATE_AVAILABLE_SEATS)) {
-                statement.setInt(1, availableSeats);
-                statement.setInt(2, tripId);
-                return statement.executeUpdate() > 0;
-            }
+        try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(UPDATE_AVAILABLE_SEATS)) {
+            statement.setInt(1, availableSeats);
+            statement.setInt(2, tripId);
+            return statement.executeUpdate() > 0;
+        } catch (ConnectionPoolException e) {
+            logger.error("Failed to obtain database connection", e);
+            throw new DaoException("Failed to obtain database connection", e);
         } catch (SQLException e) {
             logger.error("Failed to update available seats for trip {} to {}", tripId, availableSeats, e);
             throw new DaoException("Failed to update available seats", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("Thread interrupted while obtaining connection", e);
-            throw new DaoException("Failed to obtain database connection", e);
-        } finally {
-            connectionPool.releaseConnection(connection);
         }
     }
 
