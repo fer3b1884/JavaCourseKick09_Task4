@@ -18,6 +18,7 @@ import java.util.Optional;
 
 public class TripDaoImpl implements TripDao {
     private static final Logger logger = LogManager.getLogger(TripDaoImpl.class);
+    private static final TripDaoImpl INSTANCE = new TripDaoImpl();
     private static final String TRIP_SELECT = """
             SELECT t.id AS trip_id, t.departure_time, t.arrival_time, t.price, t.available_seats,
                    r.id AS route_id, r.route_number, r.departure_city, r.arrival_city,
@@ -47,6 +48,12 @@ public class TripDaoImpl implements TripDao {
             """;
     private static final String DELETE_BY_ID = "DELETE FROM trips WHERE id = ?";
     private static final String UPDATE_AVAILABLE_SEATS = "UPDATE trips SET available_seats = ? WHERE id = ?";
+
+    private TripDaoImpl() { }
+
+    public static TripDaoImpl getInstance() {
+        return INSTANCE;
+    }
 
     @Override
     public boolean create(Trip trip) throws DaoException {
@@ -112,17 +119,17 @@ public class TripDaoImpl implements TripDao {
     }
 
     @Override
-    public Trip update(Trip trip) throws DaoException {
+    public boolean update(Trip trip) throws DaoException {
         Optional<Trip> old = findEntityById(trip.getId());
         if (old.isEmpty()) {
-            return null;
+            return false;
         }
         try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE)) {
             setTripParameters(statement, trip);
             statement.setInt(7, trip.getId());
             statement.executeUpdate();
-            return old.get();
+            return true;
         } catch (ConnectionPoolException e) {
             logger.error("Failed to obtain database connection", e);
             throw new DaoException("Failed to obtain database connection", e);

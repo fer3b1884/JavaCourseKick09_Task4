@@ -17,6 +17,7 @@ import java.util.Optional;
 
 public class BusDaoImpl implements BusDao {
     private static final Logger logger = LogManager.getLogger(BusDaoImpl.class);
+    private static final BusDaoImpl INSTANCE = new BusDaoImpl();
     private static final String FIND_ALL = "SELECT * FROM buses";
     private static final String FIND_BY_ID = "SELECT * FROM buses WHERE id = ?";
     private static final String INSERT = """
@@ -36,7 +37,10 @@ public class BusDaoImpl implements BusDao {
     private static final String FIND_MILEAGE_GREATER =
             "SELECT * FROM buses WHERE mileage > ?";
 
-    public BusDaoImpl() {
+    private BusDaoImpl() { }
+
+    public static BusDaoImpl getInstance() {
+        return INSTANCE;
     }
 
     @Override
@@ -103,17 +107,17 @@ public class BusDaoImpl implements BusDao {
     }
 
     @Override
-    public Bus update(Bus bus) throws DaoException {
+    public boolean update(Bus bus) throws DaoException {
         Optional<Bus> old = findEntityById(bus.getId());
         if (old.isEmpty()) {
-            return null;
+            return false;
         }
         try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE)) {
             setBusParameters(statement, bus);
             statement.setInt(8, bus.getId());
             statement.executeUpdate();
-            return old.get();
+            return true;
         } catch (ConnectionPoolException e) {
             logger.error("Failed to obtain database connection", e);
             throw new DaoException("Failed to obtain database connection", e);

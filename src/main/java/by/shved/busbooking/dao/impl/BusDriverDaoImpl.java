@@ -17,6 +17,7 @@ import java.util.Optional;
 
 public class BusDriverDaoImpl implements BusDriverDao {
     private static final Logger logger = LogManager.getLogger(BusDriverDaoImpl.class);
+    private static final BusDriverDaoImpl INSTANCE = new BusDriverDaoImpl();
     private static final String FIND_ALL = "SELECT * FROM drivers";
     private static final String FIND_BY_ID = "SELECT * FROM drivers WHERE id = ?";
     private static final String INSERT = """
@@ -28,6 +29,12 @@ public class BusDriverDaoImpl implements BusDriverDao {
             phone_number = ?, status = ? WHERE id = ?
             """;
     private static final String DELETE_BY_ID = "DELETE FROM drivers WHERE id = ?";
+
+    private BusDriverDaoImpl() { }
+
+    public static BusDriverDaoImpl getInstance() {
+        return INSTANCE;
+    }
 
     @Override
     public boolean create(BusDriver driver) throws DaoException {
@@ -93,17 +100,17 @@ public class BusDriverDaoImpl implements BusDriverDao {
     }
 
     @Override
-    public BusDriver update(BusDriver driver) throws DaoException {
+    public boolean update(BusDriver driver) throws DaoException {
         Optional<BusDriver> old = findEntityById(driver.getId());
         if (old.isEmpty()) {
-            return null;
+            return false;
         }
         try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE)) {
             setDriverParameters(statement, driver);
             statement.setInt(7, driver.getId());
             statement.executeUpdate();
-            return old.get();
+            return true;
         } catch (ConnectionPoolException e) {
             logger.error("Failed to obtain database connection", e);
             throw new DaoException("Failed to obtain database connection", e);

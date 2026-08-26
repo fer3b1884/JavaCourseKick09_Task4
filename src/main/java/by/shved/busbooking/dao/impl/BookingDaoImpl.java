@@ -17,6 +17,7 @@ import java.util.Optional;
 
 public class BookingDaoImpl implements BookingDao {
     private static final Logger logger = LogManager.getLogger(BookingDaoImpl.class);
+    private static final BookingDaoImpl INSTANCE = new BookingDaoImpl();
     private static final String FIND_ALL = "SELECT * FROM bookings";
     private static final String FIND_BY_ID = "SELECT * FROM bookings WHERE id = ?";
     private static final String INSERT = "INSERT INTO bookings (user_id, trip_id, seat_number, status) VALUES (?, ?, ?, ?)";
@@ -25,6 +26,12 @@ public class BookingDaoImpl implements BookingDao {
     private static final String FIND_BY_USER = "SELECT * FROM bookings WHERE user_id = ?";
     private static final String FIND_BY_TRIP = "SELECT * FROM bookings WHERE trip_id = ?";
     private static final String IS_SEAT_TAKEN = "SELECT 1 FROM bookings WHERE trip_id = ? AND seat_number = ? AND status != 'CANCELLED'";
+
+    private BookingDaoImpl() { }
+
+    public static BookingDaoImpl getInstance() {
+        return INSTANCE;
+    }
 
     @Override
     public boolean create(Booking booking) throws DaoException {
@@ -93,10 +100,10 @@ public class BookingDaoImpl implements BookingDao {
     }
 
     @Override
-    public Booking update(Booking booking) throws DaoException {
+    public boolean update(Booking booking) throws DaoException {
         Optional<Booking> old = findEntityById(booking.getId());
         if (old.isEmpty()) {
-            return null;
+            return false;
         }
         try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE)) {
@@ -106,7 +113,7 @@ public class BookingDaoImpl implements BookingDao {
             statement.setString(4, booking.getStatus());
             statement.setInt(5, booking.getId());
             statement.executeUpdate();
-            return old.get();
+            return true;
         } catch (ConnectionPoolException e) {
             logger.error("Failed to obtain database connection", e);
             throw new DaoException("Failed to obtain database connection", e);

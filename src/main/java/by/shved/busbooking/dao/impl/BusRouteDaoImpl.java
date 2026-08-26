@@ -17,11 +17,18 @@ import java.util.Optional;
 
 public class BusRouteDaoImpl implements BusRouteDao {
     private static final Logger logger = LogManager.getLogger(BusRouteDaoImpl.class);
+    private static final BusRouteDaoImpl INSTANCE = new BusRouteDaoImpl();
     private static final String FIND_ALL = "SELECT * FROM routes";
     private static final String FIND_BY_ID = "SELECT * FROM routes WHERE id = ?";
     private static final String INSERT = "INSERT INTO routes (route_number, departure_city, arrival_city) VALUES (?, ?, ?)";
     private static final String UPDATE = "UPDATE routes SET route_number = ?, departure_city = ?, arrival_city = ? WHERE id = ?";
     private static final String DELETE_BY_ID = "DELETE FROM routes WHERE id = ?";
+
+    private BusRouteDaoImpl() { }
+
+    public static BusRouteDaoImpl getInstance() {
+        return INSTANCE;
+    }
 
     @Override
     public boolean create(BusRoute route) throws DaoException {
@@ -89,10 +96,10 @@ public class BusRouteDaoImpl implements BusRouteDao {
     }
 
     @Override
-    public BusRoute update(BusRoute route) throws DaoException {
+    public boolean update(BusRoute route) throws DaoException {
         Optional<BusRoute> old = findEntityById(route.getId());
         if (old.isEmpty()) {
-            return null;
+            return false;
         }
         try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE)) {
@@ -101,7 +108,7 @@ public class BusRouteDaoImpl implements BusRouteDao {
             statement.setString(3, route.getArrivalCity());
             statement.setInt(4, route.getId());
             statement.executeUpdate();
-            return old.get();
+            return true;
         } catch (ConnectionPoolException e) {
             logger.error("Failed to obtain database connection", e);
             throw new DaoException("Failed to obtain database connection", e);

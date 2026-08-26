@@ -17,6 +17,7 @@ import java.util.Optional;
 
 public class UserDaoImpl implements UserDao {
     private static final Logger logger = LogManager.getLogger(UserDaoImpl.class);
+    private static final UserDaoImpl INSTANCE = new UserDaoImpl();
     private static final String FIND_ALL = """
             SELECT u.id,
                    u.login,
@@ -104,6 +105,12 @@ public class UserDaoImpl implements UserDao {
             WHERE email = ?
             """;
 
+    private UserDaoImpl() { }
+
+    public static UserDaoImpl getInstance() {
+        return INSTANCE;
+    }
+
     @Override
     public boolean create(User user) throws DaoException {
         try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
@@ -168,17 +175,17 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
-    public User update(User user) throws DaoException {
+    public boolean update(User user) throws DaoException {
         Optional<User> oldUser = findEntityById(user.getId());
         if (oldUser.isEmpty()) {
-            return null;
+            return false;
         }
         try (ProxyConnection connection = ConnectionPool.getInstance().getConnection();
              PreparedStatement statement = connection.prepareStatement(UPDATE)) {
             setUserParameters(statement, user);
             statement.setInt(8, user.getId());
             statement.executeUpdate();
-            return oldUser.get();
+            return true;
         } catch (ConnectionPoolException e) {
             logger.error("Failed to obtain database connection", e);
             throw new DaoException("Failed to obtain database connection", e);
