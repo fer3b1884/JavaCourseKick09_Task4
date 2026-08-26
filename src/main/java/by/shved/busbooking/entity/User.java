@@ -10,13 +10,13 @@ public class User extends AbstractEntity {
     private String lastName;
     private String firstName;
     private String patronymic;
-    private UserRole role;
+    private UserRoleType role;
 
     public User() {
     }
 
     public User(Integer id, String login, String passwordHash, String email, String lastName,
-                String firstName, String patronymic, UserRole role) {
+                String firstName, String patronymic, UserRoleType role) {
         this.id = id;
         this.login = login;
         this.passwordHash = passwordHash;
@@ -83,11 +83,11 @@ public class User extends AbstractEntity {
         this.patronymic = patronymic;
     }
 
-    public UserRole getRole() {
+    public UserRoleType getRole() {
         return role;
     }
 
-    public void setRole(UserRole role) {
+    public void setRole(UserRoleType role) {
         this.role = role;
     }
 

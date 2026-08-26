@@ -12,15 +12,7 @@ public final class EntityMapper {
     private EntityMapper() {
     }
 
-    public static UserRole mapUserRole(ResultSet rs) throws SQLException {
-        return new UserRole(rs.getInt("role_id"), rs.getString("role_name"));
-    }
-
     public static User mapUser(ResultSet rs) throws SQLException {
-        UserRole role = new UserRole(
-                rs.getInt("role_id"),
-                rs.getString("role_name")
-        );
         return new User(
                 rs.getInt("id"),
                 rs.getString("login"),
@@ -29,7 +21,7 @@ public final class EntityMapper {
                 rs.getString("last_name"),
                 rs.getString("first_name"),
                 rs.getString("patronymic"),
-                role
+                UserRoleType.valueOf(rs.getString("role_name"))
         );
     }
 
