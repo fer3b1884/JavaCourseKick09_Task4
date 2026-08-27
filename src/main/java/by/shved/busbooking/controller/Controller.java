@@ -51,7 +51,7 @@ public class Controller extends HttpServlet {
         } catch (CommandException e) {
             logger.error("Command execution failed: {}", commandStr, e);
             request.setAttribute("error_msg", e.getMessage());
-            request.getRequestDispatcher("/pages/error/error_500.jsp").forward(request, response);
+            request.getRequestDispatcher("/WEB-INF/jsp/error.jsp").forward(request, response);
         }
     }
 

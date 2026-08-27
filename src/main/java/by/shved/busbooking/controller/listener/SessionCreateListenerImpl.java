@@ -14,12 +14,12 @@ public class SessionCreateListenerImpl implements HttpSessionListener {
     @Override
     public void sessionCreated(HttpSessionEvent se) {
         /* Session is created. */
-        logger.log(Level.INFO, "sessionCreated: ");
+        logger.info("Session created: id={}", se.getSession().getId());
     }
 
     @Override
     public void sessionDestroyed(HttpSessionEvent se) {
         /* Session is destroyed. */
-        logger.log(Level.INFO, "sessionDestroyed: ");
+        logger.info("Session destroyed: id={}", se.getSession().getId());
     }
 }

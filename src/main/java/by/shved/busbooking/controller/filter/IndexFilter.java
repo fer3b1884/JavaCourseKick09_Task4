@@ -1,25 +1,28 @@
 package by.shved.busbooking.controller.filter;
 
+import by.shved.busbooking.command.CommandUtil;
+import by.shved.busbooking.entity.User;
 import jakarta.servlet.*;
-import jakarta.servlet.annotation.*;
+import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 
-//@WebFilter(filterName = "IndexFilter", value = "index.jsp")
+@WebFilter(filterName = "IndexFilter", urlPatterns = {"/index.jsp", ""})
 public class IndexFilter implements Filter {
-    public void init(FilterConfig config) throws ServletException {
-    }
-
-    public void destroy() {
-    }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws ServletException, IOException {
-        HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-        HttpSession session = httpServletRequest.getSession(false);
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
 
+        User user = CommandUtil.getCurrentUser(httpRequest);
+        if (user != null) {
+            httpResponse.sendRedirect(httpRequest.getContextPath() + "/controller?command=main");
+            return;
+        }
         chain.doFilter(request, response);
     }
 }
