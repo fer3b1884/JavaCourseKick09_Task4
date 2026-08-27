@@ -1,0 +1,23 @@
+* { box-sizing: border-box; }
+body { font-family: Segoe UI, Arial, sans-serif; margin: 0; background: #f4f6f8; color: #222; }
+.container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.header { background: #1f4e79; color: #fff; }
+.header h1 { margin: 0; display: inline-block; }
+.header nav a { color: #fff; margin-right: 12px; text-decoration: none; }
+.header nav a:hover { text-decoration: underline; }
+.user-info { margin-left: 16px; }
+.logout-form { display: inline-block; margin-left: 12px; }
+.card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+th { background: #e9eef3; }
+.msg { padding: 10px; border-radius: 6px; margin-bottom: 12px; }
+.msg-success { background: #dff0d8; color: #3c763d; }
+.msg-error { background: #f2dede; color: #a94442; }
+form label { display: block; margin: 8px 0 4px; }
+form input, form select { width: 100%; max-width: 400px; padding: 8px; }
+button, .btn { background: #1f4e79; color: #fff; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; }
+button.danger { background: #a94442; }
+.footer { margin-top: 24px; padding: 16px; background: #e9eef3; text-align: center; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
