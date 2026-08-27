@@ -15,7 +15,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 public class AddUserCommand implements Command {
-
     private final UserService userService = UserServiceImpl.getInstance();
 
     @Override
@@ -26,14 +25,12 @@ public class AddUserCommand implements Command {
         String lastName = CommandUtil.param(request, "lastName");
         String firstName = CommandUtil.param(request, "firstName");
         String patronymic = CommandUtil.param(request, "patronymic");
-
         RegistrationValidator validator = new RegistrationValidator();
         if (!validator.validate(login, password, email, lastName, firstName)) {
             request.setAttribute("errors", validator.getErrors());
             preserveForm(request, login, email, lastName, firstName, patronymic);
             return CommandResult.forward("/WEB-INF/jsp/register.jsp");
         }
-
         User user = new User();
         user.setLogin(login);
         user.setPasswordHash(password);
@@ -42,7 +39,6 @@ public class AddUserCommand implements Command {
         user.setFirstName(firstName);
         user.setPatronymic(patronymic);
         user.setRole(UserRoleType.USER);
-
         try {
             userService.register(user);
             CommandUtil.setFlashMessage(request, "Registration successful. Please log in.");

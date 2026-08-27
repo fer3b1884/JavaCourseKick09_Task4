@@ -27,7 +27,6 @@ public class SaveBusCommand implements Command {
             CommandUtil.setFlashError(request, "Access denied");
             return CommandResult.redirect(request.getContextPath() + "/controller?command=main");
         }
-
         String idStr = CommandUtil.param(request, "id");
         String busNumber = CommandUtil.param(request, "busNumber");
         String brand = CommandUtil.param(request, "brand");
@@ -37,13 +36,11 @@ public class SaveBusCommand implements Command {
         String seatCount = CommandUtil.param(request, "seatCount");
         String status = CommandUtil.param(request, "status");
         if (status.isEmpty()) status = "ACTIVE";
-
         BusValidator validator = new BusValidator();
         if (!validator.validate(busNumber, brand, driverId, startYear, mileage, seatCount)) {
             CommandUtil.setFlashError(request, validator.getErrors().get(0));
             return CommandResult.redirect(request.getContextPath() + "/controller?command=admin_buses");
         }
-
         try {
             Bus bus = new Bus();
             if (!idStr.isEmpty()) {
@@ -56,7 +53,6 @@ public class SaveBusCommand implements Command {
             bus.setMileage(Integer.parseInt(mileage));
             bus.setSeatCount(Integer.parseInt(seatCount));
             bus.setStatus(status);
-
             if (bus.getId() == null) {
                 Bus created = busService.create(bus);
                 CommandUtil.setFlashMessage(request, "Bus added successfully");

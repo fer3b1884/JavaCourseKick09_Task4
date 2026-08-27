@@ -34,7 +34,6 @@ public class SaveTripCommand implements Command {
             CommandUtil.setFlashError(request, "Access denied");
             return CommandResult.redirect(request.getContextPath() + "/controller?command=main");
         }
-
         String idStr = CommandUtil.param(request, "id");
         String routeId = CommandUtil.param(request, "routeId");
         String busId = CommandUtil.param(request, "busId");
@@ -42,13 +41,11 @@ public class SaveTripCommand implements Command {
         String arrivalTime = CommandUtil.param(request, "arrivalTime");
         String price = CommandUtil.param(request, "price");
         String availableSeats = CommandUtil.param(request, "availableSeats");
-
         TripValidator validator = new TripValidator();
         if (!validator.validate(routeId, busId, departureTime, arrivalTime, price, availableSeats)) {
             CommandUtil.setFlashError(request, validator.getErrors().get(0));
             return CommandResult.redirect(request.getContextPath() + "/controller?command=admin_trips");
         }
-
         try {
             Trip trip = new Trip();
             if (!idStr.isEmpty()) {
@@ -60,7 +57,6 @@ public class SaveTripCommand implements Command {
             trip.setArrivalTime(LocalDateTime.parse(arrivalTime, FORMATTER));
             trip.setPrice(new BigDecimal(price));
             trip.setAvailableSeats(Integer.parseInt(availableSeats));
-
             if (trip.getId() == null) {
                 Trip created = tripService.create(trip);
                 CommandUtil.setFlashMessage(request, "Trip added successfully");

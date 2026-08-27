@@ -17,7 +17,6 @@ public class IndexFilter implements Filter {
             throws IOException, ServletException {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
-
         User user = CommandUtil.getCurrentUser(httpRequest);
         if (user != null) {
             httpResponse.sendRedirect(httpRequest.getContextPath() + "/controller?command=main");

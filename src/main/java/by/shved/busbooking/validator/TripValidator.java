@@ -15,7 +15,6 @@ public class TripValidator {
     public boolean validate(String routeId, String busId, String departureTime,
                             String arrivalTime, String price, String availableSeats) {
         errors.clear();
-
         if (!ValidationUtil.isPositiveInteger(routeId)) {
             errors.add("Route is required");
         }
@@ -52,7 +51,6 @@ public class TripValidator {
         if (!ValidationUtil.isPositiveInteger(availableSeats)) {
             errors.add("Available seats must be positive");
         }
-
         return errors.isEmpty();
     }
 

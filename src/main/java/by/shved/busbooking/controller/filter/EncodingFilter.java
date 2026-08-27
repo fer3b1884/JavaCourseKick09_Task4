@@ -10,7 +10,6 @@ import java.nio.charset.StandardCharsets;
 
 @WebFilter(filterName = "EncodingFilter", urlPatterns = "/*")
 public class EncodingFilter implements Filter {
-
     private static final String ENCODING = StandardCharsets.UTF_8.name();
 
     @Override

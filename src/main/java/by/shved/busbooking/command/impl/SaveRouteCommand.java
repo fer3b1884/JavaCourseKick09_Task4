@@ -26,18 +26,15 @@ public class SaveRouteCommand implements Command {
             CommandUtil.setFlashError(request, "Access denied");
             return CommandResult.redirect(request.getContextPath() + "/controller?command=main");
         }
-
         String idStr = CommandUtil.param(request, "id");
         String routeNumber = CommandUtil.param(request, "routeNumber");
         String departureCity = CommandUtil.param(request, "departureCity");
         String arrivalCity = CommandUtil.param(request, "arrivalCity");
-
         RouteValidator validator = new RouteValidator();
         if (!validator.validate(routeNumber, departureCity, arrivalCity)) {
             CommandUtil.setFlashError(request, validator.getErrors().get(0));
             return CommandResult.redirect(request.getContextPath() + "/controller?command=admin_routes");
         }
-
         try {
             BusRoute route = new BusRoute();
             if (!idStr.isEmpty()) {
@@ -46,7 +43,6 @@ public class SaveRouteCommand implements Command {
             route.setRouteNumber(routeNumber);
             route.setDepartureCity(departureCity);
             route.setArrivalCity(arrivalCity);
-
             if (route.getId() == null) {
                 BusRoute created = routeService.create(route);
                 CommandUtil.setFlashMessage(request, "Route added successfully");

@@ -52,7 +52,6 @@ public class UpdateProfileCommand implements Command {
             updatedUser.setFirstName(firstName);
             updatedUser.setPatronymic(patronymic);
             updatedUser.setRole(currentUser.getRole());
-
             boolean success = userService.updateProfile(updatedUser);
             if (success) {
                 currentUser.setEmail(email);
@@ -60,7 +59,7 @@ public class UpdateProfileCommand implements Command {
                 currentUser.setFirstName(firstName);
                 currentUser.setPatronymic(patronymic);
                 if (!password.isEmpty()) {
-                    //todo
+                    //todo update user on client after password changing
                 }
                 request.getSession().setAttribute(SessionKeys.USER, currentUser);
                 CommandUtil.setFlashMessage(request, "Profile updated successfully");
